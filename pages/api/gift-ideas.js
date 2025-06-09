@@ -14,10 +14,11 @@ export default async function handler(req, res) {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
+      console.log('🔴 [SYSTEM] OpenAI API key not found, using local fallback system');
       throw new Error('OpenAI API key is not configured');
     }
 
-    console.log('Using OpenAI API for gift suggestions');
+    console.log('🟢 [SYSTEM] Using OpenAI API for gift suggestions');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
     const data = await response.json();
     
     if (!response.ok) {
+      console.log('🔴 [SYSTEM] OpenAI API call failed:', data.error?.message);
       throw new Error(data.error?.message || 'Failed to generate gift ideas');
     }
 
@@ -59,19 +61,22 @@ export default async function handler(req, res) {
       if (jsonMatch) {
         gifts = JSON.parse(jsonMatch[0]);
       } else {
+        console.log('🔴 [SYSTEM] Failed to parse OpenAI response');
         throw new Error('Failed to parse gift suggestions');
       }
     }
 
     // 只展示 GPT 返回的内容，不补足重复项
     const finalGifts = Array.isArray(gifts) ? gifts.slice(0, 10) : [];
+    console.log('🟢 [SYSTEM] Successfully generated gifts using OpenAI API');
 
     res.status(200).json({ gifts: finalGifts });
   } catch (error) {
     console.error('Error:', error);
     // 只有在 API 调用失败时才使用备用系统
-    console.log('Falling back to local gift suggestions due to:', error.message);
+    console.log('🟡 [SYSTEM] Falling back to local gift suggestions due to:', error.message);
     const fallbackGifts = generateFallbackGifts(prompt, history);
+    console.log('🟡 [SYSTEM] Generated', fallbackGifts.length, 'gifts using local system');
     return res.status(200).json({ gifts: fallbackGifts });
   }
 }
