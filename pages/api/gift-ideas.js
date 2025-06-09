@@ -11,11 +11,15 @@ export default async function handler(req, res) {
     }
     const betterPrompt = `${prompt}\n${historyText}\nPlease suggest 10 unique, creative, and diverse gift ideas. Each gift should be different from the others, and cover a variety of categories (e.g. tech, experience, handmade, luxury, books, etc). Respond with a JSON array of 10 objects, each with 'title' and 'description'. Do not repeat any gift.`;
 
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
