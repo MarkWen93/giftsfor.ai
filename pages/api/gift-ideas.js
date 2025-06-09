@@ -13,7 +13,11 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.OPENAI_API_KEY;
 
-    console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
+    console.log('Using OpenAI API for gift suggestions');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -65,9 +69,52 @@ export default async function handler(req, res) {
     res.status(200).json({ gifts: finalGifts });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ 
-      message: 'Failed to generate gift ideas',
-      error: error.message 
-    });
+    // 只有在 API 调用失败时才使用备用系统
+    console.log('Falling back to local gift suggestions due to:', error.message);
+    const fallbackGifts = generateFallbackGifts(prompt, history);
+    return res.status(200).json({ gifts: fallbackGifts });
   }
+}
+
+// 备用礼物建议系统
+function generateFallbackGifts(prompt, history = []) {
+  const giftCategories = {
+    tech: [
+      { title: "Smart Watch", description: "A stylish smartwatch to track fitness and stay connected" },
+      { title: "Wireless Earbuds", description: "High-quality wireless earbuds for music and calls" },
+      { title: "Portable Charger", description: "A compact power bank for charging devices on the go" }
+    ],
+    books: [
+      { title: "Bestselling Novel", description: "A captivating fiction book from the current bestseller list" },
+      { title: "Self-Development Book", description: "An inspiring book about personal growth and success" },
+      { title: "Coffee Table Book", description: "A beautiful photography or art book for display" }
+    ],
+    experience: [
+      { title: "Cooking Class", description: "A fun cooking class to learn new recipes and techniques" },
+      { title: "Spa Day", description: "A relaxing spa treatment package for ultimate relaxation" },
+      { title: "Concert Tickets", description: "Tickets to see their favorite artist or band live" }
+    ],
+    wellness: [
+      { title: "Yoga Mat Set", description: "A premium yoga mat with accessories for home practice" },
+      { title: "Meditation App Subscription", description: "A year subscription to a premium meditation app" },
+      { title: "Essential Oils Kit", description: "A collection of therapeutic essential oils and diffuser" }
+    ],
+    fashion: [
+      { title: "Designer Watch", description: "A timeless watch that makes a statement" },
+      { title: "Luxury Scarf", description: "A high-quality scarf in a versatile color" },
+      { title: "Leather Wallet", description: "A handcrafted leather wallet with personalization" }
+    ]
+  };
+
+  // 从所有类别中随机选择礼物
+  const allGifts = Object.values(giftCategories).flat();
+  const shuffled = allGifts.sort(() => 0.5 - Math.random());
+  
+  // 过滤掉历史记录中的礼物
+  const filteredGifts = shuffled.filter(gift => 
+    !history.includes(gift.title)
+  );
+
+  // 返回10个不重复的礼物建议
+  return filteredGifts.slice(0, 10);
 } 
